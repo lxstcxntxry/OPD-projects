@@ -1,0 +1,39 @@
+ORG		0x100
+
+SHIFT:	WORD ?			;Ячейка для записи величины сдвига
+MAX:	WORD 122		
+LEN:	WORD 26			
+FINISH:	WORD 0x30
+		
+SHIFT_READ:
+		CLA		
+		IN 	0x5		
+		AND #0x40 		;Проверка на готовность
+		BEQ	SHIFT_READ	;Cпин
+		IN	0x4			;Получение значения сдвига
+		ST 	SHIFT
+		
+WORD_READ:
+		IN 	0x19	
+		AND #0x40 		;Проверка на готовность
+		BEQ	WORD_READ	;Cпин
+		IN	0x18		;Получение символа
+		ADD SHIFT		;Увеличение кода символа на сдвиг
+		CMP MAX			;Проверка на переполнение
+		BGE RED
+WORD_OUT:
+		OUT 0xC
+		CLA
+		OUT 0x19
+		CMP FINISH
+		BEQ EXIT
+		CLA
+		JUMP WORD_READ
+
+RED: 	SUB LEN
+		CMP MAX
+		BGE RED
+		JUMP WORD_OUT
+
+EXIT:	HLT
+		
