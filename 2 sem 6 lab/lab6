@@ -1,0 +1,119 @@
+		  ORG		0x0
+V0:		WORD	$DEFAULT
+		  WORD	0x180
+V1:		WORD	$INTER1
+		  WORD	0x180
+V2:		WORD	$DEFAULT
+		  WORD	0x180
+V3:		WORD	$INTER2
+		  WORD	0x180
+V4:		WORD	$DEFAULT
+		  WORD	0x180
+V5:		WORD	$DEFAULT
+		  WORD	0x180
+V6:		WORD	$DEFAULT
+		  WORD	0x180
+V7:		WORD	$DEFAULT
+		  WORD	0x180	
+		
+		  ORG 	0x046
+X: 		WORD 	?
+A_X:	WORD	$X
+TEMP:	WORD	?
+MAX:	WORD	0x003C		;0000 0000 0011 1100
+MIN:	WORD 	0xFFBD		;1111 1111 1011 1101
+DEFAULT:	IRET
+
+START:	
+		DI					      ;Запрет прерываний для всех неиспольуемых ВУ
+		CLA
+		OUT 	0x1
+		OUT		0x5
+		OUT		0xA
+		OUT		0xD
+		OUT		0x11
+		OUT		0x15
+		OUT		0x19
+		OUT		0x1D
+		
+		LD		#0x9		  ;Загрузка в AC MR (1000|0001) 1001
+		OUT		0x3
+		LD		#0xB		  ;Загрузка в AC MR (1000|0011) 1011
+		OUT		0x7
+		EI
+
+MAIN:	
+		LD		A_X
+		PUSH
+		LD 		X
+		PUSH
+		DEC		
+		ST 		X		
+		CALL	CHECK		  ;Проверка на ОДЗ
+		PUSH
+		CALL 	CAS
+		JUMP	MAIN	
+INTER1:						  ;Обработка прерывания на ВУ-1
+		PUSH
+		LD 		X
+		NOP
+		ASL					    ;2x
+		ADD 	#8			  ;2x+8
+		NEG					    ;-(2x+8)
+		NOP
+		OUT 	2			    ;Вывод результата на ВУ-1
+		POP
+		IRET
+INTER2:						  ;Обработка прерывания на ВУ-3
+		PUSH
+		IN 		6	
+		NOP
+		OR 		X
+		CALL	CHECK		  ;Проверка на ОДЗ
+		ST 		X
+		NOP
+		POP
+		IRET
+	
+CHECK:	
+		LD 		X
+		CMP		MAX
+		BPL		SETMAX
+		CMP		MIN
+		BMI		SETMAX
+		JUMP 	EXIT
+SETMAX: 
+		LD 		MAX
+		ST		X
+		JUMP	EXIT
+EXIT:	
+		RET
+
+;$X
+;X
+;X после check
+;адрес
+;ps
+
+CAS:
+		PUSHF
+		DI
+		LD		&4
+		ST 		TEMP
+		LD		(TEMP)
+		CMP		&3
+		BNE		RET_CAS
+		LD		&2
+		ST		(TEMP)
+RET_CAS:
+		POPF
+		SWAP
+		ST		&3
+		SWAP
+		SWAP
+		POP
+		SWAP
+		POP
+		SWAP
+		POP
+		RET
